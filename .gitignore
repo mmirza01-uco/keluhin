@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Basis data lokal (dibuat otomatis saat aplikasi jalan)
+*.db
+keluhin.db
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% block body %}
+<div class="card"><h1>Buat Tiket Keluhan</h1>
+<form method="post">
+  <label>Judul</label><input name="judul" required>
+  <label>Deskripsi</label><textarea name="deskripsi" required></textarea>
+  <div class="row">
+    <div><label>Kategori</label><select name="kategori_id">
+      {% for k in kategori %}<option value="{{ k.id }}">{{ k.nama }}</option>{% endfor %}</select></div>
+    <div><label>Prioritas</label><select name="prioritas">
+      {% for p in prioritas %}<option value="{{ p }}">{{ p }}</option>{% endfor %}</select></div>
+  </div>
+  <button type="submit">Kirim Tiket</button>
+</form></div>{% endblock %}

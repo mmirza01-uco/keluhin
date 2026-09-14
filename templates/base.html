@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="id"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Keluhin{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head><body>
+{% if session.user_id %}
+<input type="checkbox" id="nav-toggle" class="nav-toggle" hidden>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">Keluhin</div>
+    <nav class="side-nav">
+      <a href="{{ url_for('dashboard') }}">Daftar Tiket</a>
+      <a href="{{ url_for('tiket_baru') }}">Buat Tiket</a>
+      <a href="{{ url_for('logout') }}">Keluar</a>
+    </nav>
+    <div class="side-user">Masuk sebagai<br><b>{{ session.nama }}</b><br><span class="muted-light">{{ session.peran }}</span></div>
+  </aside>
+  <label for="nav-toggle" class="nav-backdrop" aria-hidden="true"></label>
+  <div class="main">
+    <header class="topbar">
+      <label for="nav-toggle" class="burger" aria-label="Buka menu"><span></span><span></span><span></span></label>
+      <span class="topbar-title">Keluhin</span>
+    </header>
+    <div class="container">
+{% else %}
+<div class="container">
+{% endif %}
+      {% with messages = get_flashed_messages() %}{% for m in messages %}<div class="flash">{{ m }}</div>{% endfor %}{% endwith %}
+      {% block body %}{% endblock %}
+{% if session.user_id %}
+    </div>
+  </div>
+</div>
+{% else %}
+</div>
+{% endif %}
+</body></html>

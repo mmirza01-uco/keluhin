@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% block body %}
+<div class="card auth"><h1>Registrasi</h1>
+<p class="muted">Registrasi untuk pelanggan. Akun agen dibuat oleh administrator.</p>
+<form method="post">
+  <label>Nama</label><input name="nama" required>
+  <label>Email</label><input type="email" name="email" required>
+  <label>Kata Sandi</label><input type="password" name="password" required>
+  <button type="submit">Daftar sebagai Pelanggan</button>
+</form>
+<p class="muted">Sudah punya akun? <a href="{{ url_for('login') }}">Login</a></p>
+</div>{% endblock %}

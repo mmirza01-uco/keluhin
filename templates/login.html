@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% block body %}
+<div class="card auth"><h1>Masuk Keluhin</h1>
+<form method="post">
+  <label>Email</label><input type="email" name="email" required>
+  <label>Kata Sandi</label><input type="password" name="password" required>
+  <button type="submit">Login</button>
+</form>
+<p class="muted">Belum punya akun? <a href="{{ url_for('register') }}">Registrasi</a></p>
+<p class="muted">Akun demo &mdash; Agen: agen@keluhin.app / agen1234 &middot; Pelanggan: pelanggan@keluhin.app / pelanggan1234</p>
+</div>{% endblock %}

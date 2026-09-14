@@ -1,0 +1,118 @@
+{% extends "base.html" %}{% block body %}
+<div class="card">
+  <h1>#{{ t.id }} — {{ t.judul }}</h1>
+  <p class="subtitle">Dibuat oleh {{ t.pembuat_nama }}</p>
+  <p><span class="badge {{ t.status }}">{{ t.status }}</span>
+     <span class="meta">&nbsp;Kategori: {{ t.kategori_nama or '-' }} · Prioritas: {{ t.prioritas }}</span></p>
+  <p>{{ t.deskripsi }}</p>
+</div>
+
+{% if session.peran == 'agen' %}
+<div class="card"><h2>Ubah Status</h2>
+  {% if transisi %}
+  <p class="meta">Seret kartu tiket ke kolom status berikutnya yang diperbolehkan (di HP: ketuk kolomnya), lalu Simpan. Aturan: Baru → Diproses → Selesai → Ditutup, dengan Selesai → Diproses untuk buka ulang.</p>
+  <form method="post" action="{{ url_for('ubah_status', tiket_id=t.id) }}" id="status-form">
+    <input type="hidden" name="status_baru" id="status_baru" value="">
+    <div class="kanban" id="kanban" data-status="{{ t.status }}" data-transisi="{{ transisi|join(',') }}">
+      {% for s in urutan_status %}
+      <div class="kcol" data-status="{{ s }}">
+        <div class="kcol-head badge {{ s }}">{{ s }}</div>
+        <div class="kcol-body" data-status="{{ s }}">
+          {% if s == t.status %}
+          <div class="kanban-card" id="ticket-card">#{{ t.id }} — {{ t.judul }}</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="row-actions" style="margin-top:14px">
+      <button type="button" id="btn-cancel" class="btn-secondary">Batal</button>
+      <button type="submit" id="btn-save" disabled>Simpan</button>
+    </div>
+  </form>
+  {% else %}<p class="muted">Tiket berstatus akhir (Ditutup); tak ada transisi lanjutan.</p>{% endif %}
+</div>
+{% endif %}
+
+<div class="card"><h2>Riwayat Status</h2>
+  <ul class="timeline">
+    {% for r in riwayat %}<li><b>{{ r.status_baru }}</b>{% if r.status_lama %} (dari {{ r.status_lama }}){% endif %}
+      <span class="meta">— {{ r.oleh_nama or 'sistem' }}, {{ r.waktu }}</span></li>{% endfor %}
+  </ul>
+</div>
+
+{% if session.peran == 'agen' and transisi %}
+<script>
+(function(){
+  var kb = document.getElementById('kanban'); if(!kb) return;
+  var current = kb.dataset.status;
+  var valid = (kb.dataset.transisi || '').split(',').filter(Boolean);
+  var card = document.getElementById('ticket-card');
+  var hidden = document.getElementById('status_baru');
+  var saveBtn = document.getElementById('btn-save');
+  var cols = {};
+  function allowed(st){ return st === current || valid.indexOf(st) >= 0; }
+  kb.querySelectorAll('.kcol').forEach(function(c){
+    var st = c.dataset.status; cols[st] = c;
+    if(!allowed(st)) c.classList.add('disabled');
+    else if(st !== current) c.classList.add('droppable');
+  });
+  function bodyOf(st){ return cols[st].querySelector('.kcol-body'); }
+  function stage(st){
+    if(st === current){ hidden.value = ''; saveBtn.disabled = true; }
+    else { hidden.value = st; saveBtn.disabled = false; }
+  }
+  function moveTo(st){ bodyOf(st).appendChild(card); stage(st); }
+
+  // --- Drag via Pointer Events: jalan untuk mouse (desktop) & sentuh (HP/tablet) ---
+  var dragging = false, offX = 0, offY = 0, hoverBody = null, moved = false;
+  function clearHover(){ if(hoverBody){ hoverBody.classList.remove('dragover'); hoverBody = null; } }
+  function colUnder(x, y){
+    var prev = card.style.pointerEvents; card.style.pointerEvents = 'none';
+    var el = document.elementFromPoint(x, y); card.style.pointerEvents = prev;
+    return el ? el.closest('.kcol') : null;
+  }
+  function resetFloat(){
+    card.style.position=''; card.style.left=''; card.style.top='';
+    card.style.width=''; card.style.zIndex=''; card.style.pointerEvents='';
+    card.classList.remove('dragging');
+  }
+  function onDown(e){
+    if(e.button != null && e.button > 0) return;         // hanya klik kiri / sentuh
+    dragging = true; moved = false;
+    var r = card.getBoundingClientRect();
+    offX = e.clientX - r.left; offY = e.clientY - r.top;
+    card.style.width = r.width + 'px';
+    card.style.position = 'fixed'; card.style.left = r.left + 'px'; card.style.top = r.top + 'px';
+    card.style.zIndex = '1000'; card.style.pointerEvents = 'none';
+    card.classList.add('dragging');
+    try { card.setPointerCapture(e.pointerId); } catch(_){}
+    e.preventDefault();
+  }
+  function onMove(e){
+    if(!dragging) return;
+    moved = true;
+    card.style.left = (e.clientX - offX) + 'px';
+    card.style.top  = (e.clientY - offY) + 'px';
+    var col = colUnder(e.clientX, e.clientY);
+    clearHover();
+    if(col){ var st = col.dataset.status; if(allowed(st) && st !== current){ hoverBody = bodyOf(st); hoverBody.classList.add('dragover'); } }
+    e.preventDefault();
+  }
+  function finish(e, cancel){
+    if(!dragging) return; dragging = false;
+    var target = current;
+    if(!cancel && moved){
+      var col = colUnder(e.clientX, e.clientY);
+      if(col && allowed(col.dataset.status)) target = col.dataset.status;
+    }
+    clearHover(); resetFloat(); moveTo(target);
+  }
+  card.addEventListener('pointerdown', onDown);
+  document.addEventListener('pointermove', onMove);
+  document.addEventListener('pointerup', function(e){ finish(e, false); });
+  document.addEventListener('pointercancel', function(e){ finish(e, true); });
+  document.getElementById('btn-cancel').addEventListener('click', function(){ moveTo(current); });
+})();
+</script>
+{% endif %}{% endblock %}
