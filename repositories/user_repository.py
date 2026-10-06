@@ -26,7 +26,6 @@ class UserRepository:
         connection = get_connection()
 
         try:
-
             row = connection.execute(
                 """
                 select * from users
