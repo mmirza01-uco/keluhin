@@ -3,14 +3,20 @@
 Cakupan: registrasi, login, logout, dan Manajemen Tiket
 (buat tiket + state machine ubah status + riwayat + kontrol peran).
 """
-import os, sys, tempfile, unittest, importlib
+import importlib
+import os
+import sys
+import tempfile
+import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import db
+import db  # noqa: E402  (butuh sys.path di atas)
 
 
 class KeluhinTest(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False); self.tmp.close()
+        self.tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+        self.tmp.close()
         db.DB_PATH = self.tmp.name
         db.init_db(seed=True)
         import app as app_module
@@ -23,7 +29,9 @@ class KeluhinTest(unittest.TestCase):
         os.unlink(self.tmp.name)
 
     def login(self, email="agen@keluhin.app", pw="agen1234"):
-        return self.client.post("/login", data={"email": email, "password": pw}, follow_redirects=True)
+        return self.client.post("/login",
+                                data={"email": email, "password": pw},
+                                follow_redirects=True)
 
     # TC-01
     def test_seed(self):
@@ -34,8 +42,10 @@ class KeluhinTest(unittest.TestCase):
     # TC-02 / TC-03
     def test_login_benar(self):
         self.assertIn("Daftar Tiket", self.login().get_data(as_text=True))
+
     def test_login_salah(self):
-        self.assertIn("Email atau kata sandi salah", self.login(pw="x").get_data(as_text=True))
+        html = self.login(pw="x").get_data(as_text=True)
+        self.assertIn("Email atau kata sandi salah", html)
 
     # TC-04 logout
     def test_logout(self):
@@ -46,13 +56,18 @@ class KeluhinTest(unittest.TestCase):
     # TC-05 / TC-06 / TC-07 registrasi
     def test_registrasi_email_ganda(self):
         from services import AuthService
-        with self.assertRaises(ValueError): AuthService.register("X", "agen@keluhin.app", "rahasia123")
+        with self.assertRaises(ValueError):
+            AuthService.register("X", "agen@keluhin.app", "rahasia123")
+
     def test_registrasi_peran_tak_dikenal(self):
         from services import AuthService
-        with self.assertRaises(ValueError): AuthService.register("X", "baru@k.app", "rahasia123", "hacker")
+        with self.assertRaises(ValueError):
+            AuthService.register("X", "baru@k.app", "rahasia123", "hacker")
+
     def test_registrasi_email_tak_valid(self):
         from services import AuthService
-        with self.assertRaises(ValueError): AuthService.register("X", "bukan-email", "rahasia123")
+        with self.assertRaises(ValueError):
+            AuthService.register("X", "bukan-email", "rahasia123")
 
     # TC-08 akses tanpa login
     def test_akses_tanpa_login(self):
@@ -65,7 +80,8 @@ class KeluhinTest(unittest.TestCase):
         tid = TiketService.buat_tiket("Tes", "isi keluhan", "Sedang", 1, 1)
         t = TiketService.ambil_tiket(tid)
         self.assertEqual(t["status"], "Baru")
-        self.assertEqual(len(TiketService.riwayat(tid)), 1)  # log awal tercatat
+        # log awal tercatat
+        self.assertEqual(len(TiketService.riwayat(tid)), 1)
 
     # TC-10 transisi sah
     def test_transisi_sah(self):
@@ -79,7 +95,8 @@ class KeluhinTest(unittest.TestCase):
         from services import TiketService
         tid = TiketService.buat_tiket("T", "x", "Rendah", 1, 1)
         with self.assertRaises(ValueError):
-            TiketService.ubah_status(tid, "Selesai", 2)   # Baru -> Selesai tidak sah
+            # Baru -> Selesai tidak sah
+            TiketService.ubah_status(tid, "Selesai", 2)
 
     # TC-12 reopen: Diproses->Selesai->Diproses
     def test_reopen(self):
@@ -89,7 +106,8 @@ class KeluhinTest(unittest.TestCase):
         TiketService.ubah_status(tid, "Selesai", 2)
         TiketService.ubah_status(tid, "Diproses", 2)  # buka ulang, sah
         self.assertEqual(TiketService.ambil_tiket(tid)["status"], "Diproses")
-        self.assertEqual(len(TiketService.riwayat(tid)), 4)  # awal + 3 transisi
+        # awal + 3 transisi
+        self.assertEqual(len(TiketService.riwayat(tid)), 4)
 
     # TC-13 status sama ditolak
     def test_status_sama_ditolak(self):
@@ -102,9 +120,12 @@ class KeluhinTest(unittest.TestCase):
     def test_pelanggan_tak_boleh_ubah_status(self):
         self.login("pelanggan@keluhin.app", "pelanggan1234")
         from services import TiketService
-        r = self.client.post("/tiket/1/status", data={"status_baru": "Diproses"}, follow_redirects=True)
+        r = self.client.post("/tiket/1/status",
+                             data={"status_baru": "Diproses"},
+                             follow_redirects=True)
         self.assertIn("tidak punya hak akses", r.get_data(as_text=True))
-        self.assertEqual(TiketService.ambil_tiket(1)["status"], "Baru")  # tak berubah
+        # status tak berubah
+        self.assertEqual(TiketService.ambil_tiket(1)["status"], "Baru")
 
     # TC-15 404
     def test_tiket_tak_ada_404(self):
@@ -114,7 +135,8 @@ class KeluhinTest(unittest.TestCase):
     # TC-16 pelanggan hanya lihat tiket sendiri (service)
     def test_daftar_tiket_filter_pembuat(self):
         from services import TiketService, AuthService
-        uid = AuthService.register("Baru", "baru@k.app", "rahasia123", "pelanggan")
+        uid = AuthService.register("Baru", "baru@k.app", "rahasia123",
+                                   "pelanggan")
         self.assertEqual(len(TiketService.daftar_tiket(pembuat_id=uid)), 0)
         self.assertEqual(len(TiketService.daftar_tiket(pembuat_id=1)), 3)
 
